@@ -1,0 +1,21 @@
+# Ignore dependencies
+node_modules
+npm-debug.log
+
+# Ignore tests
+test
+*.spec.ts
+
+# Ignore development stuff
+src
+prisma/dev.db
+.env
+.env.*
+
+# Ignore editor/OS files
+.vscode
+.idea
+.DS_Store
+
+# Ignore build artifacts you don’t want
+dist/**/*.map
