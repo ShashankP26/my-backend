@@ -448,7 +448,7 @@ section .section-title {
     <!-- Spinner Start -->
     <div id="spinner"
         class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+        <div class="spinner-border text-primary" Group="status" style="width: 3rem; height: 3rem;"></div>
     </div>
     <!-- Spinner End -->
 
@@ -569,7 +569,7 @@ section .section-title {
                 <div class="col-lg-3 col-md-6">
                     <h5 class="text-white mb-4">Newsletter</h5>
                     <p>Subscibe our Newsletter to recieve the latest news. No Spam.</p>
-                   <form role="form" method="POST" action="/savenewsletter" enctype="multipart/form-data">
+                   <form Group="form" method="POST" action="/savenewsletter" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="position-relative w-100">
                         <input class="form-control bg-transparent w-100 py-3 ps-4 pe-5" type="email"

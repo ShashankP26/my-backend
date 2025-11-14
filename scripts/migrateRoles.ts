@@ -2,37 +2,37 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  const roles = await prisma.role.findMany({
+  const Groups = await prisma.group.findMany({
     orderBy: { id: 'asc' }
   });
 
-  console.log(`Found ${roles.length} roles`);
+  console.log(`Found ${Groups.length} Groups`);
 
   // --- Phase 1: move everything to temporary IDs ---
-  for (let i = 0; i < roles.length; i++) {
-    const role = roles[i];
+  for (let i = 0; i < Groups.length; i++) {
+    const Group = Groups[i];
     const tempId = 1000 + i; // pick a safe high number, no collision
-    console.log(`Temporarily moving ${role.name}: ${role.id} → ${tempId}`);
+    console.log(`Temporarily moving ${Group.name}: ${Group.id} → ${tempId}`);
 
-    await prisma.role.update({
-      where: { id: role.id },
+    await prisma.group.update({
+      where: { id: Group.id },
       data: { id: tempId },
     });
   }
 
   // --- Phase 2: assign powers of 2 ---
-  const tempRoles = await prisma.role.findMany({
+  const tempGroups = await prisma.group.findMany({
     orderBy: { id: 'asc' }
   });
 
-  for (let i = 0; i < tempRoles.length; i++) {
-    const role = tempRoles[i];
+  for (let i = 0; i < tempGroups.length; i++) {
+    const Group = tempGroups[i];
     const newId = 2 ** i;
 
-    console.log(`Finalizing ${role.name}: ${role.id} → ${newId}`);
+    console.log(`Finalizing ${Group.name}: ${Group.id} → ${newId}`);
 
-    await prisma.role.update({
-      where: { id: role.id },
+    await prisma.group.update({
+      where: { id: Group.id },
       data: { id: newId },
     });
   }

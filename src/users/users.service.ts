@@ -1,3 +1,4 @@
+// src/users/users.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -6,54 +7,55 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  // Create a user and assign role
-  async create(data: { username: string; password: string; role: string }) {
-    const role = await this.prisma.role.findUnique({ where: { name: data.role } });
-    if (!role) throw new Error(`Role ${data.role} does not exist`);
+  async create(data: { username: string; password: string; group: string }) {
+    const group = await this.prisma.group.findUnique({ where: { name: data.group } });
+    if (!group) throw new Error(`Group ${data.group} does not exist`);
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashed = await bcrypt.hash(data.password, 10);
 
     return this.prisma.user.create({
       data: {
         username: data.username,
-        password: hashedPassword,
-        roles: { create: { roleId: role.id } },
+        password: hashed,
+        userGroups: { create: { groupId: group.id } },
       },
-      include: { roles: { include: { role: true } } },
+      include: { userGroups: { include: { group: true } } },
     });
   }
 
-  // Find user by username
   async findOne(username: string) {
     return this.prisma.user.findUnique({
       where: { username },
       include: {
-        roles: {
-          include: { role: { include: { permissions: { include: { permission: true } } } } },
+        userGroups: {
+          include: {
+            group: {
+              include: {
+                groupPermissions: { include: { permission: true } },
+              },
+            },
+          },
         },
       },
     });
   }
 
-  // Validate password
   async validatePassword(input: string, storedHash: string) {
     return bcrypt.compare(input, storedHash);
   }
 
-  // ✅ Implement this
-  async getUserPermissions(userId: number) {
-    const userRoles = await this.prisma.userRole.findMany({
+  async getUserGroupPermissions(userId: number) {
+    const userGroups = await this.prisma.userGroup.findMany({
       where: { userId },
-      include: { role: { include: { permissions: { include: { permission: true } } } } },
+      include: { group: { include: { groupPermissions: { include: { permission: true } } } } },
     });
 
-    const permsSet = new Set<string>();
-    for (const ur of userRoles) {
-      for (const rp of ur.role.permissions) {
-        permsSet.add(rp.permission.name);
+    const set = new Set<string>();
+    for (const ug of userGroups) {
+      for (const gj of ug.group.groupPermissions) {
+        set.add(gj.permission.name);
       }
     }
-
-    return Array.from(permsSet).map(name => ({ name }));
+    return Array.from(set).map((name) => ({ name }));
   }
 }

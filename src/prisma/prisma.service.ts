@@ -1,3 +1,4 @@
+// src/prisma/prisma.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
@@ -8,37 +9,61 @@ export class PrismaService
 {
   async onModuleInit() {
     await this.$connect();
-
-    // ✅ Auto-assign 'un' when creating a Role
-    this.registerRoleMiddleware();
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
   }
 
-  // 🧠 Define middleware setup in its own method for clarity
-  private registerRoleMiddleware() {
-    // @ts-ignore (for older Prisma versions missing type declarations)
-    this.$use(async (params, next) => {
-      if (params.model === 'Role' && params.action === 'create') {
-        const name = params.args.data.name?.toLowerCase();
+  /**
+   * Auto Bitmask Group Creator
+   * Called manually instead of Prisma.group.create()
+   */
+  async createGroupAuto(data: { name: string }) {
+    const name = data.name.toLowerCase();
 
-        // Count all roles except admin
-        const existingRoles = await this.role.findMany({
-          where: { name: { not: 'admin' } },
-        });
-        const count = existingRoles.length;
+    // 🧮 Count ALL normal groups (admin excluded)
+    const normalCount = await this.group.count({
+      where: { name: { not: 'admin' } },
+    });
 
-        // Assign the unique bitmask automatically
-        if (name === 'admin') {
-          params.args.data.un = (2 ** count) - 1; // Admin covers all roles
-        } else {
-          params.args.data.un = 2 ** count; // e.g., 1, 2, 4, 8, ...
-        }
-      }
+    // 👑 Admin group → full mask
+    if (name === 'admin') {
+      const fullMask = (2 ** normalCount) - 1;
+      return this.group.create({
+        data: {
+          name: data.name,
+          un: fullMask,
+          super_un: -1,
+        },
+      });
+    }
 
-      return next(params);
+    // 👤 Normal group → assign next bit automatically
+    const newGroup = await this.group.create({
+      data: {
+        name: data.name,
+        un: 2 ** normalCount,
+        super_un: null,
+      },
+    });
+
+    // 🔄 Update admin's mask after adding a new group
+    await this.updateAdminMask();
+
+    return newGroup;
+  }
+
+  private async updateAdminMask() {
+    const normalCount = await this.group.count({
+      where: { name: { not: 'admin' } },
+    });
+
+    const adminMask = (2 ** normalCount) - 1;
+
+    await this.group.updateMany({
+      where: { name: 'admin' },
+      data: { un: adminMask },
     });
   }
 }

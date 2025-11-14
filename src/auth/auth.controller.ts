@@ -2,24 +2,34 @@ import { Controller, Post, Body, Get, Request, UseGuards } from '@nestjs/common'
 import { AuthService } from './auth.service';
 import { Public } from './public.decorator';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from './roles.decorator';
-import { RolesGuard } from './roles.guard';
-import { Permissions } from './permissions.decorator';
-import { PermissionsGuard } from './permissions.guard';
+import { GroupPermissionsGuard } from './GroupPermissions.guard';
+import { GroupPermissions } from './GroupPermissions.decorator';
+import { GroupsGuard } from './Groups.guard';
+import { Groups } from './Groups.decorator';
 
-// @UseGuards(AuthGuard('jwt')) // JWT guard applied globally
+
+
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
-  // Publicly accessible register
+  // ------------------------------------------------------------
+  // PUBLIC ROUTES
+  // ------------------------------------------------------------
+
   @Post('register')
   @Public()
-  async register(@Body() body: { username: string; password: string; role: string }) {
+  async register(
+    @Body()
+    body: {
+      username: string;
+      password: string;
+      group: string; // 👉 lowercase to match your schema
+    },
+  ) {
     return this.authService.register(body);
   }
 
-  // Publicly accessible login
   @Post('login')
   @Public()
   async login(@Body() body: { username: string; password: string }) {
@@ -27,43 +37,48 @@ export class AuthController {
     return this.authService.login(user);
   }
 
-  // Protected profile (JWT required by default)
+  // ------------------------------------------------------------
+  // PROTECTED ROUTES
+  // ------------------------------------------------------------
+
   @Get('profile')
   getProfile(@Request() req) {
     return req.user;
   }
 
-  // Role-based route
-  @UseGuards(RolesGuard)
+  // ------------------------------------------------------------
+  // GROUP-BASED ACCESS
+  // ------------------------------------------------------------
+
+  @UseGuards(GroupsGuard)
   @Get('admin')
-  @Roles('admin')
+  @Groups('admin') // 👈 must match group.name in DB
   getAdminData() {
     return { message: 'Hello Admin!' };
   }
 
-  // Permission-based route
-  @UseGuards(PermissionsGuard)
+  // ------------------------------------------------------------
+  // GROUP PERMISSION–BASED ACCESS
+  // ------------------------------------------------------------
+
+  @UseGuards(GroupPermissionsGuard)
   @Get('manage-users')
-  @Permissions('user:read')
+  @GroupPermissions('user:read')
   getUsers() {
     return { message: 'User read permission granted!' };
   }
 
-  @UseGuards(PermissionsGuard)
+  @UseGuards(GroupPermissionsGuard)
   @Post('create-user')
-  @Permissions('user:create')
+  @GroupPermissions('user:create')
   createUser() {
     return { message: 'User create permission granted!' };
   }
-  // Only users with "reports:view" permission can access
-  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+
+  @UseGuards(AuthGuard('jwt'), GroupPermissionsGuard)
   @Get('reports')
-  @Permissions('reports:view')
+  @GroupPermissions('reports:view')
   getReports() {
-    return { message: 'Here are the Xpredict Labs reports ' };
+    return { message: 'Here are the Xpredict Labs reports' };
   }
 }
-
-
-
-

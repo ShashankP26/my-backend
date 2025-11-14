@@ -1,16 +1,16 @@
 import { Controller, Get } from '@nestjs/common';
-import { Roles } from '../auth/roles.decorator';
+import { Groups } from '../auth/Groups.decorator';
 
 @Controller('admin')
 export class AdminController {
   @Get('dashboard')
-  @Roles('admin')
+  @Groups('admin')
   getAdminDashboard() {
     return { message: 'Welcome Admin!' };
   }
 
   @Get('manager')
-  @Roles('admin', 'manager')
+  @Groups('admin', 'manager')
   getManagerDashboard() {
     return { message: 'Welcome Manager or Admin!' };
   }

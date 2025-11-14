@@ -32,7 +32,7 @@ CREATE TABLE "GroupPermission" (
 CREATE TABLE "GroupJunction" (
     "id" SERIAL NOT NULL,
     "groupId" INTEGER NOT NULL,
-    "permissionId" INTEGER NOT NULL,
+    "GroupPermissionId" INTEGER NOT NULL,
 
     CONSTRAINT "GroupJunction_pkey" PRIMARY KEY ("id")
 );
@@ -59,7 +59,7 @@ CREATE UNIQUE INDEX "Group_un_key" ON "Group"("un");
 CREATE UNIQUE INDEX "GroupPermission_name_key" ON "GroupPermission"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "GroupJunction_groupId_permissionId_key" ON "GroupJunction"("groupId", "permissionId");
+CREATE UNIQUE INDEX "GroupJunction_groupId_GroupPermissionId_key" ON "GroupJunction"("groupId", "GroupPermissionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "UserGroup_userId_groupId_key" ON "UserGroup"("userId", "groupId");
@@ -68,7 +68,7 @@ CREATE UNIQUE INDEX "UserGroup_userId_groupId_key" ON "UserGroup"("userId", "gro
 ALTER TABLE "GroupJunction" ADD CONSTRAINT "GroupJunction_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GroupJunction" ADD CONSTRAINT "GroupJunction_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "GroupPermission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "GroupJunction" ADD CONSTRAINT "GroupJunction_GroupPermissionId_fkey" FOREIGN KEY ("GroupPermissionId") REFERENCES "GroupPermission"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "UserGroup" ADD CONSTRAINT "UserGroup_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -8,46 +8,72 @@ datasource db {
 }
 
 model User {
-  id        Int        @id @default(autoincrement())
-  username  String     @unique
-  fullName  String?
-  password  String
-  groups    UserGroup[]
-  info      String     @default("")
-  createdAt DateTime   @default(now())
+  id         Int       @id @default(autoincrement())
+  username   String    @unique
+  fullName   String?
+  password   String
+  groups     UserGroup[]
+  info       String    @default("")
+  createdAt  DateTime  @default(now())
 }
 
 model Group {
-  id          Int             @id @default(autoincrement())
-  name        String          @unique
-  un          Int?            @unique    // bitmask bit
-  super_un    Int?                         // for admin full mask or -1
-  permissions GroupJunction[]
-  users       UserGroup[]
+  id               Int @id @default(autoincrement())
+  name             String @unique
+  un               Int? @unique
+  super_un         Int?
+  GroupPermissions GroupJunction[]
+  users            UserGroup[]
 }
 
 model GroupPermission {
-  id    Int             @id @default(autoincrement())
-  name  String          @unique
-  groups GroupJunction[]
+  id           Int              @id @default(autoincrement())
+  name         String           @unique
+  groupJunctions GroupJunction[]
 }
 
 model GroupJunction {
-  id           Int             @id @default(autoincrement())
-  group        Group           @relation(fields: [groupId], references: [id])
-  groupId      Int
-  permission   GroupPermission @relation(fields: [permissionId], references: [id])
-  permissionId Int
+  id                  Int @id @default(autoincrement())
+  group               Group @relation(fields: [groupId], references: [id])
+  groupId             Int
+  GroupPermission     GroupPermission @relation(fields: [GroupPermissionId], references: [id])
+  GroupPermissionId   Int
 
-  @@unique([groupId, permissionId])
+  @@unique([groupId, GroupPermissionId])
+}
+
+model Module {
+  id                Int                @id @default(autoincrement())
+  name              String             @unique
+  un                Int?               @unique
+  super_un          Int?
+  modulePermissions ModuleJunction[]
+  users             UserModule[]
+}
+
+model ModulePermission {
+  id      Int               @id @default(autoincrement())
+  name    String            @unique
+  modules ModuleJunction[]
+}
+
+model ModuleJunction {
+  id              Int               @id @default(autoincrement())
+  module          Module            @relation(fields: [moduleId], references: [id])
+  moduleId        Int
+  permission      ModulePermission  @relation(fields: [modulePermissionId], references: [id])
+  modulePermissionId Int
+
+  @@unique([moduleId, modulePermissionId])
 }
 
 model UserGroup {
   id      Int   @id @default(autoincrement())
-  user    User  @relation(fields: [userId], references: [id])
   userId  Int
-  group   Group @relation(fields: [groupId], references: [id])
   groupId Int
+
+  user  User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id])
 
   @@unique([userId, groupId])
 }

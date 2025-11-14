@@ -25,9 +25,10 @@
   ],
 
   "scripts": {
-
     "build": "nest build",
-
+    "start:dev": "nest start --watch",
+    "start": "node dist/main.js",
+    "seed": "ts-node prisma/seed.ts",
     "prepublishOnly": "npm run build"
 
   },
@@ -38,9 +39,9 @@
 
     "rbac",
 
-    "roles",
+    "Groups",
 
-    "permissions",
+    "GroupPermissions",
 
     "auth",
 

@@ -22,7 +22,7 @@ export class AuthService {
     return { access_token: this.jwtService.sign(payload) };
   }
 
-  async register(data: { username: string; password: string; role: string }) {
+  async register(data: { username: string; password: string; group: string }) {
     return this.usersService.create(data);
   }
 }

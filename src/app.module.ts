@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PrismaService } from './prisma/prisma.service';
 import { APP_GUARD } from '@nestjs/core';
-import { PermissionsGuard } from './auth/permissions.guard';
+import { GroupPermissionsGuard } from './auth/GroupPermissions.guard';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { PermissionsGuard } from './auth/permissions.guard';
     PrismaService,
     {
       provide: APP_GUARD,
-      useClass: PermissionsGuard, // ✅ Global permissions guard
+      useClass: GroupPermissionsGuard, // ✅ Global GroupPermissions guard
     },
   ],
 })

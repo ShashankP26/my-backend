@@ -1,116 +1,103 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+// // prisma/seed.ts
+// import { PrismaClient } from '@prisma/client';
+// import * as bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
-async function main() {
-  console.log('Seeding database with bitmask roles (un)...');
+// async function main() {
+//   console.log('Seeding database (bitmask groups + permissions)...');
 
-  // 1️⃣ Create permissions
-  const permissionsData: { name: string }[] = [
-    { name: 'user:create' },
-    { name: 'user:read' },
-    { name: 'user:update' },
-    { name: 'user:delete' },
-    { name: 'admin:access' },
-    { name: 'reports:view' },
-  ];
+//   // 1️⃣ create permissions (skip duplicates)
+//   const perms = [
+//     'user:create',
+//     'user:read',
+//     'user:update',
+//     'user:delete',
+//     'admin:access',
+//     'reports:view',
+//   ];
 
-  await prisma.permission.createMany({
-    data: permissionsData,
-    skipDuplicates: true,
-  });
+//   for (const name of perms) {
+//     await prisma.groupPermission.upsert({
+//       where: { name },
+//       update: {},
+//       create: { name },
+//     });
+//   }
 
-  // 2️⃣ Count existing roles (for bitmask assignment)
-  const existingRolesCount = await prisma.role.count({
-    where: { name: { not: 'admin' } },
-  });
+//   // 2️⃣ ensure some normal groups exist (user + manager as examples)
+//   const normalCountBefore = await prisma.group.count({ where: { NOT: { name: 'admin' } } });
 
-  // 3️⃣ Create user role (2^n)
-  const userRole = await prisma.role.upsert({
-    where: { name: 'user' },
-    update: {},
-    create: {
-      name: 'user',
-      un: 2 ** existingRolesCount, // 2^0 = 1
-    },
-  });
+//   const userGroup = await prisma.group.upsert({
+//     where: { name: 'user' },
+//     update: {},
+//     create: { name: 'user', un: 2 ** normalCountBefore },
+//   });
 
-  // 4️⃣ Create manager role (next bit)
-  const managerRole = await prisma.role.upsert({
-    where: { name: 'manager' },
-    update: {},
-    create: {
-      name: 'manager',
-      un: 2 ** (existingRolesCount + 1), // 2^1 = 2
-    },
-  });
+//   const managerGroup = await prisma.group.upsert({
+//     where: { name: 'manager' },
+//     update: {},
+//     create: { name: 'manager', un: 2 ** (normalCountBefore + 1) },
+//   });
 
-  // 5️⃣ Create admin (bitmask: all bits set for existing roles)
-  const totalNormalRoles = await prisma.role.count({
-    where: { name: { not: 'admin' } },
-  });
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'admin' },
-    update: {},
-    create: {
-      name: 'admin',
-      un: (2 ** totalNormalRoles) - 1, // e.g. if 2 roles exist, admin = 3
-    },
-  });
+//   // 3️⃣ admin group: full mask for existing normal groups
+//   const totalNormal = await prisma.group.count({ where: { NOT: { name: 'admin' } } });
+//   const adminUn = (2 ** totalNormal) - 1;
 
-  // 6️⃣ Attach all permissions to admin
-  const allPermissions = await prisma.permission.findMany();
-  for (const perm of allPermissions) {
-    await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: adminRole.id, permissionId: perm.id } },
-      update: {},
-      create: { roleId: adminRole.id, permissionId: perm.id },
-    });
-  }
+//   const adminGroup = await prisma.group.upsert({
+//     where: { name: 'admin' },
+//     update: {},
+//     create: { name: 'admin', un: adminUn, super_un: -1 },
+//   });
 
-  // 7️⃣ Attach read-only to user and manager
-  const readPerm = await prisma.permission.findUnique({ where: { name: 'user:read' } });
-  if (readPerm) {
-    for (const r of [userRole, managerRole]) {
-      await prisma.rolePermission.upsert({
-        where: { roleId_permissionId: { roleId: r.id, permissionId: readPerm.id } },
-        update: {},
-        create: { roleId: r.id, permissionId: readPerm.id },
-      });
-    }
-  }
+//   // 4️⃣ attach all permissions to admin (GroupJunction)
+//   const allPerms = await prisma.groupPermission.findMany();
+//   for (const p of allPerms) {
+//     await prisma.groupJunction.upsert({
+//       where: { groupId_permissionId: { groupId: adminGroup.id, permissionId: p.id } },
+//       update: {},
+//       create: { groupId: adminGroup.id, permissionId: p.id },
+//     });
+//   }
 
-  // 8️⃣ Create superadmin user
-  const hashedPassword = await bcrypt.hash('superadmin123', 10);
-  const superAdmin = await prisma.user.upsert({
-    where: { username: 'superadmin' },
-    update: {},
-    create: {
-      username: 'superadmin',
-      password: hashedPassword,
-      groups: 1,
-      info: 'Super admin user with full access',
-    },
-  });
+//   // 5️⃣ give read permission to user and manager
+//   const readPerm = await prisma.groupPermission.findUnique({ where: { name: 'user:read' } });
+//   if (readPerm) {
+//     for (const g of [userGroup, managerGroup]) {
+//       await prisma.groupJunction.upsert({
+//         where: { groupId_permissionId: { groupId: g.id, permissionId: readPerm.id } },
+//         update: {},
+//         create: { groupId: g.id, permissionId: readPerm.id },
+//       });
+//     }
+//   }
 
-  // 9️⃣ Assign admin role to superadmin
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: superAdmin.id, roleId: adminRole.id } },
-    update: {},
-    create: {
-      userId: superAdmin.id,
-      roleId: adminRole.id,
-    },
-  });
+//   // 6️⃣ create superadmin user and assign admin group
+//   const pw = await bcrypt.hash('superadmin123', 10);
+//   const superAdmin = await prisma.user.upsert({
+//     where: { username: 'superadmin' },
+//     update: {},
+//     create: {
+//       username: 'superadmin',
+//       password: pw,
+//       info: 'Super admin user',
+//     },
+//   });
 
-  console.log('✅ Database seeded with bitmask roles successfully!');
-}
+//   await prisma.userGroup.upsert({
+//     where: { userId_groupId: { userId: superAdmin.id, groupId: adminGroup.id } },
+//     update: {},
+//     create: { userId: superAdmin.id, groupId: adminGroup.id },
+//   });
 
-main()
-  .then(() => prisma.$disconnect())
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+//   console.log('✅ Seeding complete.');
+// }
+
+// main()
+//   .catch((e) => {
+//     console.error(e);
+//     process.exit(1);
+//   })
+//   .finally(async () => {
+//     await prisma.$disconnect();
+//   });

@@ -3,39 +3,39 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🔁 Backfill: assigning `un` values to roles...');
+  console.log('🔁 Backfill: assigning `un` values to Groups...');
 
   // Exclude admin for now
-  const normalRoles = await prisma.role.findMany({
+  const normalGroups = await prisma.group.findMany({
     where: { name: { not: 'admin' } },
     orderBy: { id: 'asc' },
   });
 
-  for (let i = 0; i < normalRoles.length; i++) {
-    const role = normalRoles[i];
+  for (let i = 0; i < normalGroups.length; i++) {
+    const Group = normalGroups[i];
     const unValue = 2 ** i;
 
-    await prisma.role.update({
-      where: { id: role.id },
+    await prisma.group.update({
+      where: { id: Group.id },
       data: { un: unValue },
     });
 
-    console.log(`✅ Updated ${role.name} → un = ${unValue}`);
+    console.log(`✅ Updated ${Group.name} → un = ${unValue}`);
   }
 
   // Now handle admin
-  const admin = await prisma.role.findUnique({ where: { name: 'admin' } });
+  const admin = await prisma.group.findUnique({ where: { name: 'admin' } });
   if (admin) {
-    const adminMask = (2 ** normalRoles.length) - 1;
+    const adminMask = (2 ** normalGroups.length) - 1;
 
-    await prisma.role.update({
+    await prisma.group.update({
       where: { id: admin.id },
       data: { un: adminMask },
     });
 
     console.log(`👑 Updated admin → un = ${adminMask}`);
   } else {
-    console.log('⚠️ No admin role found, skipping...');
+    console.log('⚠️ No admin Group found, skipping...');
   }
 
   console.log('🎉 Backfill complete!');
