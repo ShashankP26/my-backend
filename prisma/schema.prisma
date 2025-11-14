@@ -8,45 +8,46 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
+  id        Int        @id @default(autoincrement())
+  username  String     @unique
   fullName  String?
   password  String
-  roles     UserRole[]
-  groups    Int      @default(0)
-  info      String   @default("")
-  createdAt DateTime @default(now())
+  groups    UserGroup[]
+  info      String     @default("")
+  createdAt DateTime   @default(now())
 }
 
-model Role {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  permissions RolePermission[]
-  users       UserRole[]
+model Group {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  un          Int?            @unique    // bitmask bit
+  super_un    Int?                         // for admin full mask or -1
+  permissions GroupJunction[]
+  users       UserGroup[]
 }
 
-model Permission {
+model GroupPermission {
   id    Int             @id @default(autoincrement())
   name  String          @unique
-  roles RolePermission[]
+  groups GroupJunction[]
 }
 
-model RolePermission {
-  id           Int        @id @default(autoincrement())
-  role         Role       @relation(fields: [roleId], references: [id])
-  roleId       Int
-  permission   Permission @relation(fields: [permissionId], references: [id])
+model GroupJunction {
+  id           Int             @id @default(autoincrement())
+  group        Group           @relation(fields: [groupId], references: [id])
+  groupId      Int
+  permission   GroupPermission @relation(fields: [permissionId], references: [id])
   permissionId Int
 
-  @@unique([roleId, permissionId])
+  @@unique([groupId, permissionId])
 }
 
-model UserRole {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
-  role   Role @relation(fields: [roleId], references: [id])
-  roleId Int
+model UserGroup {
+  id      Int   @id @default(autoincrement())
+  user    User  @relation(fields: [userId], references: [id])
+  userId  Int
+  group   Group @relation(fields: [groupId], references: [id])
+  groupId Int
 
-  @@unique([userId, roleId])
+  @@unique([userId, groupId])
 }
